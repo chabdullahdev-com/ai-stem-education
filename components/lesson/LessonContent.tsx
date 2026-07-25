@@ -1,68 +1,157 @@
 "use client";
 
-import type { LessonStep } from "@/lib/types";
+import type { LessonStep, Question } from "@/lib/types";
 import type { LessonProgressApi } from "@/lib/use-lesson-progress";
+import {
+  ActivityCard,
+  ConceptList,
+  ObjectivesList,
+  QuestionList,
+  StepBadge,
+  StepHeading,
+  StepSummary,
+} from "./content-blocks";
+import { HardwarePanel, useHardwareConnection } from "@/components/hardware/HardwarePanel";
 
 interface LessonContentProps {
   progress: LessonProgressApi;
+  studentAge?: number;
 }
 
-// Renders the introduction (cover) view for the lesson's first step,
-// which shows the lesson objectives and the "Start Lesson" CTA.
-function IntroductionCover({ step }: { step: LessonStep }) {
+/* -----------------------------------------------------------------------
+ * Step header (shared by content steps)
+ * ----------------------------------------------------------------------- */
+
+function kindLabel(kind: LessonStep["kind"]): string {
+  switch (kind) {
+    case "prepare-experiment":
+      return "Prepare";
+    case "knowledge-check":
+      return "Knowledge check";
+    case "assessment":
+      return "Assessment";
+    case "experiment":
+      return "Experiment";
+    case "introduction":
+      return "Introduction";
+    default:
+      return "Content";
+  }
+}
+
+function StepHeader({ step, index }: { step: LessonStep; index: number }) {
   return (
-    <div className="animate-stem-fade-up space-y-8">
-      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--primary-ink)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)]" />
-        Step 01 · Introduction
-      </div>
-
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight text-[var(--foreground)] sm:text-5xl">
-          Temperature <span className="text-[var(--primary)]">Sensors</span>
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg text-[var(--muted)]">
-          Let&apos;s discover how temperature sensors detect changes in the world around us — and how computers turn those changes into data.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-        <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--foreground)]">Learning objectives</h2>
-        <ul className="mt-4 space-y-3">
-          {step.objectives?.map((obj, i) => (
-            <li key={i} className="flex items-start gap-3 text-[var(--foreground)]">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[10px] font-bold text-[var(--primary-ink)]">
-                {i + 1}
-              </span>
-              <span className="text-[var(--foreground)]">{obj.text}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] p-5">
-        <p className="text-sm text-[var(--muted)]">
-          <strong className="text-[var(--foreground)]">Heads up:</strong> steps 4–6 (Experiment, Knowledge Check, Final Assessment) need the MakerBuddy hardware and AI assessment, which arrive in the next part of Gemma STEM. They&apos;ll stay locked for now.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <StepBadge index={index + 1} label={kindLabel(step.kind)} />
+      <StepHeading>{step.title}</StepHeading>
+      {step.summary ? <StepSummary>{step.summary}</StepSummary> : null}
     </div>
   );
 }
 
-// Placeholder renderers for steps that exist in the data but whose real
-// content/interaction arrives in future parts. We show a clean "coming next"
-// state instead of fabricated lesson material.
-function FutureStepPlaceholder({ step }: { step: LessonStep }) {
+/* -----------------------------------------------------------------------
+ * "Continue" CTA bound to completion + advancement.
+ * ----------------------------------------------------------------------- */
+
+function ContinueButton({ progress }: { progress: LessonProgressApi }) {
+  const { completeAndAdvance, currentStepIndex, totalSteps } = progress;
+  const isLast = currentStepIndex + 1 >= totalSteps;
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <button
+        type="button"
+        onClick={completeAndAdvance}
+        className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-6 py-3 text-base font-semibold text-[var(--surface)] shadow-lg shadow-[color-mix(in_srgb,var(--primary)_30%,transparent)] transition hover:bg-[var(--primary-ink)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--primary)_30%,transparent)]"
+      >
+        {isLast ? "Complete lesson" : "Continue"}
+        <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M4 10h12m0 0-4-4m4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------------------
+ * Step renderers
+ * ----------------------------------------------------------------------- */
+
+// Introduction (step 1) — lesson cover with objectives + start CTA.
+function IntroductionCover({ step, progress }: { step: LessonStep; progress: LessonProgressApi }) {
+  return (
+    <div className="animate-stem-fade-up space-y-8">
+      <StepBadge index={1} label="Introduction" />
+      <div>
+        <StepHeading>
+          Temperature <span className="text-[var(--primary)]">Sensors</span>
+        </StepHeading>
+        <p className="mt-3 max-w-2xl text-lg text-[var(--muted)]">
+          Let&apos;s discover how temperature sensors detect changes in the world around us — and how computers turn those changes into useful data.
+        </p>
+      </div>
+      {step.objectives?.length ? <ObjectivesList objectives={step.objectives} /> : null}
+      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] p-5">
+        <p className="text-sm text-[var(--muted)]">
+          <strong className="text-[var(--foreground)]">Heads up:</strong> steps 5–7 (Experiment, Knowledge Check, Final Assessment) need the MakerBuddy hardware and AI assessment, which arrive in a later part. You can still see their questions here, but they stay locked until the backend is connected.
+        </p>
+      </div>
+      <ContinueButton progress={progress} />
+    </div>
+  );
+}
+
+// Interactive content step — renders concepts + activity from structured data.
+function ContentStep({ step, progress }: { step: LessonStep; progress: LessonProgressApi }) {
+  const index = progress.currentStepIndex;
+  return (
+    <div className="animate-stem-fade-up space-y-8">
+      <StepHeader step={step} index={index} />
+      {step.objectives?.length ? <ObjectivesList objectives={step.objectives} /> : null}
+      <ConceptList concepts={step.concepts} />
+      {step.activity ? <ActivityCard activity={step.activity} /> : null}
+      <ContinueButton progress={progress} />
+    </div>
+  );
+}
+
+// Prepare-experiment step — instruction-led activity.
+function PrepareExperimentStep({ step, progress }: { step: LessonStep; progress: LessonProgressApi }) {
+  const index = progress.currentStepIndex;
+  return (
+    <div className="animate-stem-fade-up space-y-8">
+      <StepHeader step={step} index={index} />
+      {step.objectives?.length ? <ObjectivesList objectives={step.objectives} /> : null}
+      <ConceptList concepts={step.concepts} />
+      {step.activity ? <ActivityCard activity={step.activity} /> : null}
+      <ContinueButton progress={progress} />
+    </div>
+  );
+}
+
+// Experiment step — live hardware connection + sensor data + graph.
+function ExperimentStep({ step, progress }: { step: LessonStep; progress: LessonProgressApi }) {
+  const hook = useHardwareConnection();
+  const index = progress.currentStepIndex;
+
+  return (
+    <div className="animate-stem-fade-up space-y-8">
+      <StepHeader step={step} index={index} />
+      {step.objectives?.length ? <ObjectivesList objectives={step.objectives} /> : null}
+      <HardwarePanel hook={hook} />
+      <ContinueButton progress={progress} />
+    </div>
+  );
+}
+
+// Locked future-work step. Clean "coming next" placeholder; mentions how many
+// questions are ready for the backend without exposing them to the student.
+function FutureStepPlaceholder({ step, index }: { step: LessonStep; index: number }) {
+  const questionCount = step.questions?.length ?? step.assessment?.length ?? 0;
   return (
     <div className="animate-stem-fade-up space-y-6">
-      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--lock)]" />
-        Coming in the next part
-      </div>
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
-        {step.title}
-      </h1>
-      <p className="max-w-2xl text-[var(--muted)]">{step.summary}</p>
+      <StepBadge index={index + 1} label="Coming next" />
+      <StepHeading>{step.title}</StepHeading>
+      <StepSummary>{step.summary ?? ""}</StepSummary>
       <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-8 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]">
           <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -71,52 +160,26 @@ function FutureStepPlaceholder({ step }: { step: LessonStep }) {
           </svg>
         </div>
         <p className="mt-3 font-semibold text-[var(--foreground)]">This step unlocks with hardware + AI assessment</p>
-        <p className="mt-1 text-sm text-[var(--muted)]">MakerBuddy sensor hardware and Gemma&apos;s adaptive assessment arrive in Part 2.</p>
-      </div>
-    </div>
-  );
-}
-
-// A lightweight content preview for steps 2 & 3 whose rich interactive
-// content arrives later; in Part 1 we surface the step summary + objectives.
-function ContentPreview({ step }: { step: LessonStep }) {
-  return (
-    <div className="animate-stem-fade-up space-y-6">
-      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--primary-ink)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)]" />
-        Lesson content · Preview
-      </div>
-      <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
-        {step.title}
-      </h1>
-      <p className="max-w-2xl text-lg text-[var(--muted)]">{step.summary}</p>
-
-      {step.objectives?.length ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-          <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--foreground)]">By the end of this step you&apos;ll</h2>
-          <ul className="mt-3 space-y-2.5">
-            {step.objectives.map((obj, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-[var(--foreground)]">
-                <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M5 10l3 3 7-7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span>{obj.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] p-5">
-        <p className="text-sm text-[var(--muted)]">
-          The full interactive content, experiment and AI-guided assessment for this step arrive in the next part of Gemma STEM.
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          {step.kind === "experiment"
+            ? "MakerBuddy sensor hardware captures live temperature readings here."
+            : "Gemma's adaptive assessment scores this step once it's connected."}
         </p>
+        {questionCount > 0 ? (
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {questionCount} question{questionCount === 1 ? "" : "s"} ready for when the backend lands.
+          </p>
+        ) : null}
       </div>
     </div>
   );
 }
 
-export function LessonContent({ progress }: LessonContentProps) {
+/* -----------------------------------------------------------------------
+ * Main dispatch — routes a step to the right renderer based on its kind.
+ * ----------------------------------------------------------------------- */
+
+export function LessonContent({ progress, studentAge }: LessonContentProps) {
   const { lesson, currentStepIndex } = progress;
   const step = lesson.steps[currentStepIndex];
 
@@ -128,11 +191,38 @@ export function LessonContent({ progress }: LessonContentProps) {
     );
   }
 
-  if (step.kind === "introduction") {
-    return <IntroductionCover step={step} />;
-  }
   if (step.requiresFutureWork) {
-    return <FutureStepPlaceholder step={step} />;
+    return <FutureStepPlaceholder step={step} index={currentStepIndex} />;
   }
-  return <ContentPreview step={step} />;
+
+  // Build an age-filtered question list once it's needed.
+  const rawQuestions = step.questions ?? step.assessment ?? [];
+  const filteredQuestions: Question[] =
+    studentAge != null
+      ? rawQuestions.filter((q) => !q.minAge || studentAge >= q.minAge)
+      : rawQuestions;
+
+  switch (step.kind) {
+    case "introduction":
+      return <IntroductionCover step={step} progress={progress} />;
+    case "content":
+      return <ContentStep step={step} progress={progress} />;
+    case "prepare-experiment":
+      return <PrepareExperimentStep step={step} progress={progress} />;
+    case "experiment":
+      return <ExperimentStep step={step} progress={progress} />;
+    default:
+      // Knowledge-check or assessment step that is NOT flagged future-work
+      // renders its (age-filtered) questions interactively.
+      return (
+        <div className="animate-stem-fade-up space-y-8">
+          <StepHeader step={step} index={currentStepIndex} />
+          <QuestionList
+            questions={filteredQuestions}
+            title={step.kind === "assessment" ? "Final assessment" : "Knowledge check"}
+          />
+          <ContinueButton progress={progress} />
+        </div>
+      );
+  }
 }

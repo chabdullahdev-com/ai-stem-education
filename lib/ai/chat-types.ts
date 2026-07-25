@@ -36,6 +36,8 @@ export interface LessonChatContext {
   stepKind: LessonStepKind;
   /** 0-based index of the active step within the lesson. */
   stepIndex: number;
+  /** Structured knowledge Gemma uses to teach — key facts, sensor details, etc. */
+  lessonKnowledge?: string;
 }
 
 export interface ChatRequest {

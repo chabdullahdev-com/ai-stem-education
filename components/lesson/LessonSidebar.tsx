@@ -1,6 +1,6 @@
 "use client";
 
-import type { LessonStepStatus } from "@/lib/types";
+import type { LessonStep, LessonStepStatus } from "@/lib/types";
 import type { LessonProgressApi } from "@/lib/use-lesson-progress";
 import { ProgressIndicator } from "@/components/dashboard/ProgressIndicator";
 
@@ -67,7 +67,7 @@ export function LessonSidebar({ progress, onExit }: LessonSidebarProps) {
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold leading-tight">{step.title}</span>
                     <span className="block text-xs capitalize text-[var(--muted)]">
-                      {status === "locked" ? "Locked" : step.kind.replace("-", " ")}
+                      {status === "locked" ? "Locked" : friendlyKind(step.kind)}
                     </span>
                   </span>
                   {status === "locked" ? (
@@ -84,6 +84,23 @@ export function LessonSidebar({ progress, onExit }: LessonSidebarProps) {
       </nav>
     </aside>
   );
+}
+
+function friendlyKind(kind: LessonStep["kind"]): string {
+  switch (kind) {
+    case "prepare-experiment":
+      return "Prepare";
+    case "knowledge-check":
+      return "Knowledge check";
+    case "assessment":
+      return "Assessment";
+    case "experiment":
+      return "Experiment";
+    case "introduction":
+      return "Introduction";
+    default:
+      return "Content";
+  }
 }
 
 function StepGlyph({ status, index }: { status: LessonStepStatus; index: number }) {

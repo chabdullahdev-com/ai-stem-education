@@ -2,7 +2,7 @@
 
 > Learn. Build. Experiment. Understand.
 
-An AI-powered STEM education platform for students aged 5+. Local-first web app using local Gemma as the AI STEM instructor, MakerBuddy curriculum, and MakerBuddy hardware. This is **Part 1: foundation + frontend experience** only.
+An AI-powered STEM education platform for students aged 5+. Local-first web app using local Gemma as the AI STEM instructor, MakerBuddy curriculum, and MakerBuddy hardware. Parts 1, 2A, 2B, and 3A are implemented (foundation, chat UI, real Gemma via Ollama, and a structured lesson system with reusable content blocks).
 
 ## Brand Identity
 
@@ -109,12 +109,12 @@ The profile is available app-wide via `useStudent()` (React context backed by `u
 
 Per Part 1 + 2A + 2B scope:
 - ✅ Real Gemma / Ollama integration — **DONE (Part 2B)** — connected via `gemma2:2b` through Ollama
-- MakerBuddy hardware integration
-- Real-time sensor data
+- MakerBuddy hardware integration — ✅ **DONE (Part 4)** — connected via Wi-Fi + WebSocket, live DS18B20 data
+- Real-time sensor data — ✅ **DONE (Part 4)** — with SVG temperature history graph
 - AI-powered adaptive teaching
 - Experiment validation
 - Student assessment and scoring
-- Step completion logic (progress stays 0/6)
+- Step completion logic (content + prepare + knowledge-check steps are completable; experiment + assessment are locked pending hardware/scoring)
 
 ### AI chat client (Parts 2A + 2B architecture)
 
@@ -177,3 +177,6 @@ Checks run locally: `npm run typecheck` ✅ and `npm run lint` ✅.
 - **2026-07-25 (Part 1):** Built the Gemma STEM foundation — design system, TypeScript types, student profile (local-first, refresh-persistent), age-group logic, reusable lesson data structures, welcome screen, profile modal with validation, student dashboard, and the hybrid Temperature Sensors lesson interface with placeholder Gemma instructor panel. No AI/hardware/sensor/scoring integration yet.
 - **2026-07-25 (Part 2A):** Upgraded the Gemma panel into a full chat interface. Added a provider-agnostic AI chat client (`lib/ai/`) targeting the future `/api/ai/chat` route, a `LessonChatContext` (student + lesson + step) wired from `LessonLayout`, and reusable chat UI states (empty/thinking/error-with-retry, bubbles, auto-scroll, Enter-to-send). Used a clearly-marked simulation; no real AI yet.
 - **2026-07-25 (Part 2B):** Connected the Gemma chat to a real local AI model. Added the `AIProvider` interface (`lib/ai/provider.ts`), `OllamaProvider` implementation (`lib/ai/ollama-provider.ts` — the only Ollama-aware file), age-adaptive system prompts for all four age groups with the full Gemma STEM instructor persona (`lib/ai/prompts.ts`), and a server-side API route (`app/api/ai/chat/route.ts`) that bridges the frontend to the provider with user-friendly error handling (connection, timeout, model not found, empty response — all user-friendly, no stack traces at the browser). Replaced the Part 2A simulation in `lib/ai/chat-client.ts` with a real fetch. Model name via `GEMMA_MODEL` env var (default `gemma2:2b`). Ollama URL via `OLLAMA_BASE_URL` (default `http://localhost:11434`).
+- **2026-07-25 (Part 3A):** Rebuilt the lesson interface around a structured data system. Added `Concept`, `Activity`, `Question` (MCQ + true/false) types to `lib/types.ts`; restructured the Temperature Sensors lesson in `lib/lessons.ts` into 7 steps (Introduction, What is a Sensor?, Temperature Sensors, Prepare the Experiment, Experiment, Knowledge Check, Final Assessment) with concepts, activities, and quiz questions as typed data — not hardcoded in the UI. Built reusable content-block renderers (`components/lesson/content-blocks.tsx`: concept cards, activity cards, question cards, MCQ, true/false) and rewrote `LessonContent.tsx` to dispatch by step kind. Updated `use-lesson-progress.ts` with `completeAndAdvance()` so each content step can be marked done and unlock the next (steps 5–7 still locked pending hardware/scoring). Progressive disclosure concept cards, full quiz interaction with instant feedback, and "Continue" CTAs wired throughout. Gemma panel stays in place across every step.
+- **2026-07-25 (Part 3B):** Integrated MakerBuddy curriculum knowledge into the lesson data and Gemma's teaching context. Added `knowledgeBlock`, `requiredHardware`, and age-targeted question `minAge` to the type system. Replaced generic lesson content with MakerBuddy-authentic facts: DHT11 and DS18B20 sensors, the Input→Process→Output IoT cycle, ADC conversion, and data logging. A structured `knowledgeBlock` feeds Gemma's system prompt so all responses stay within the lesson scope and use real sensor specifications. Updated `buildSystemPrompt()` to inject lesson knowledge and refined adaptive teaching: separate paths for "confused" (simplify, guide, re-explain) and "understood" (deeper questions, real-world applications, stretch challenges). Knowledge check (step 6) is now interactive with instant feedback; questions are age-filtered — younger students (5–12) see MCQs and true/false, older students (13+) also get reasoning/conceptual questions. No scoring yet.
+- **2026-07-25 (Part 4):** Connected real MakerBuddy hardware. Built the hardware abstraction layer (`lib/hardware/provider.ts` — `HardwareProvider` interface with `connect`, `disconnect`, `subscribeToUpdates`, etc.) with two implementations: `MakerBuddyProvider` (`lib/hardware/makerbuddy-provider.ts`) that communicates with the MakerBuddy ESP32 over Wi-Fi + WebSocket (parses the compact JSON protocol, extracts DS18B20 temperature from `d8` key, handles reconnection with exponential backoff), and `SimulationProvider` (`lib/hardware/simulation-provider.ts`) with four scenarios (stable, warming, cooling, volatile) clearly labeled as simulation. Added hardware UI components (`components/hardware/`): `HardwarePanel` with connection controls, mode toggle (Simulation / Real Hardware), live temperature display, SVG temperature history graph, and `ConnectionStatusBadge` for the five connection states (disconnected, connecting, connected, error, reconnecting). Unlocked the experiment step in the lesson so students connect their DS18B20 and watch real-time data. The browser connects directly to the ESP32's WebSocket server (`ws://<ip>/ws`) over the local network — no server-side proxy needed.
