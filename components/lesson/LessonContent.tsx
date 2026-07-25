@@ -12,10 +12,14 @@ import {
   StepSummary,
 } from "./content-blocks";
 import { HardwarePanel, useHardwareConnection } from "@/components/hardware/HardwarePanel";
+import { useExperiment } from "@/lib/experiment/use-experiment";
+import { ExperimentRunner } from "@/components/experiment/ExperimentRunner";
+import type { ExperimentConfig } from "@/lib/experiment/types";
 
 interface LessonContentProps {
   progress: LessonProgressApi;
   studentAge?: number;
+  studentName?: string;
 }
 
 /* -----------------------------------------------------------------------
@@ -92,7 +96,7 @@ function IntroductionCover({ step, progress }: { step: LessonStep; progress: Les
       {step.objectives?.length ? <ObjectivesList objectives={step.objectives} /> : null}
       <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] p-5">
         <p className="text-sm text-[var(--muted)]">
-          <strong className="text-[var(--foreground)]">Heads up:</strong> steps 5–7 (Experiment, Knowledge Check, Final Assessment) need the MakerBuddy hardware and AI assessment, which arrive in a later part. You can still see their questions here, but they stay locked until the backend is connected.
+          <strong className="text-[var(--foreground)]">Heads up:</strong> steps 5–7 (Experiment, Knowledge Check, Final Assessment) need the sensor hardware and AI assessment, which arrive in a later part. You can still see their questions here, but they stay locked until the backend is connected.
         </p>
       </div>
       <ContinueButton progress={progress} />
@@ -128,16 +132,61 @@ function PrepareExperimentStep({ step, progress }: { step: LessonStep; progress:
   );
 }
 
-// Experiment step — live hardware connection + sensor data + graph.
-function ExperimentStep({ step, progress }: { step: LessonStep; progress: LessonProgressApi }) {
+// Experiment step — guided experiment + live hardware connection + validation
+function ExperimentStep({ step, progress, studentAge, studentName }: { step: LessonStep; progress: LessonProgressApi; studentAge?: number; studentName?: string }) {
   const hook = useHardwareConnection();
   const index = progress.currentStepIndex;
+
+  const config: ExperimentConfig = step.experimentConfig ?? {
+    baselineStabilityWindow: 5,
+    baselineStabilityThreshold: 1.0,
+    coldWaterDeltaThreshold: 3.0,
+    warmWaterDeltaThreshold: 3.0,
+    coldWaterTimeoutSec: 60,
+    warmWaterTimeoutSec: 60,
+    minReadingsPerPhase: 3,
+  };
+
+  const currentTemp = hook.reading?.temperatureDS18B20 ?? hook.reading?.temperatureDHT11 ?? null;
+  const allReadings = hook.history.map((h) => h.value);
+
+  const exp = useExperiment({
+    config,
+    currentTemperature: currentTemp,
+    hwStatus: hook.status,
+    isRealHardware: !hook.isSim,
+    studentName: studentName ?? "Student",
+    studentAge: studentAge ?? 10,
+    allReadings,
+  });
 
   return (
     <div className="animate-stem-fade-up space-y-8">
       <StepHeader step={step} index={index} />
       {step.objectives?.length ? <ObjectivesList objectives={step.objectives} /> : null}
       <HardwarePanel hook={hook} />
+      <ExperimentRunner
+        config={config}
+        phase={exp.phase}
+        baselineTemp={exp.baselineTemp}
+        coldCapture={exp.coldCapture}
+        warmCapture={exp.warmCapture}
+        validationChecks={exp.validationChecks}
+        currentTemperature={currentTemp}
+        hwStatus={hook.status}
+        history={hook.history}
+        isRealHardware={!hook.isSim}
+        gemmaAnalysis={exp.gemmaAnalysis}
+        gemmaLoading={exp.gemmaLoading}
+        gemmaError={exp.gemmaError}
+        onStartBaseline={exp.startBaseline}
+        onStartColdWater={exp.startColdWater}
+        onStartWarmWater={exp.startWarmWater}
+        onReset={exp.resetExperiment}
+        onRetry={exp.resetExperiment}
+        onRequestGemma={exp.requestGemmaAnalysis}
+        onRequestTroubleshooting={exp.requestGemmaTroubleshooting}
+      />
       <ContinueButton progress={progress} />
     </div>
   );
@@ -162,7 +211,7 @@ function FutureStepPlaceholder({ step, index }: { step: LessonStep; index: numbe
         <p className="mt-3 font-semibold text-[var(--foreground)]">This step unlocks with hardware + AI assessment</p>
         <p className="mt-1 text-sm text-[var(--muted)]">
           {step.kind === "experiment"
-            ? "MakerBuddy sensor hardware captures live temperature readings here."
+            ? "IoT sensor hardware captures live temperature readings here."
             : "Gemma's adaptive assessment scores this step once it's connected."}
         </p>
         {questionCount > 0 ? (
@@ -179,7 +228,7 @@ function FutureStepPlaceholder({ step, index }: { step: LessonStep; index: numbe
  * Main dispatch — routes a step to the right renderer based on its kind.
  * ----------------------------------------------------------------------- */
 
-export function LessonContent({ progress, studentAge }: LessonContentProps) {
+export function LessonContent({ progress, studentAge, studentName }: LessonContentProps) {
   const { lesson, currentStepIndex } = progress;
   const step = lesson.steps[currentStepIndex];
 
@@ -210,7 +259,7 @@ export function LessonContent({ progress, studentAge }: LessonContentProps) {
     case "prepare-experiment":
       return <PrepareExperimentStep step={step} progress={progress} />;
     case "experiment":
-      return <ExperimentStep step={step} progress={progress} />;
+      return <ExperimentStep step={step} progress={progress} studentAge={studentAge} studentName={studentName} />;
     default:
       // Knowledge-check or assessment step that is NOT flagged future-work
       // renders its (age-filtered) questions interactively.
@@ -220,6 +269,8 @@ export function LessonContent({ progress, studentAge }: LessonContentProps) {
           <QuestionList
             questions={filteredQuestions}
             title={step.kind === "assessment" ? "Final assessment" : "Knowledge check"}
+            studentName={studentName}
+            studentAge={studentAge}
           />
           <ContinueButton progress={progress} />
         </div>

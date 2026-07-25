@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Concept, Activity, MultipleChoiceQuestion, TrueFalseQuestion, Question } from "@/lib/types";
+import type { Concept, Activity, MultipleChoiceQuestion, TrueFalseQuestion, OpenEndedQuestion, Question } from "@/lib/types";
 
 /* -----------------------------------------------------------------------
  * Shared atoms
@@ -301,18 +301,157 @@ export function TrueFalseCard({ question }: { question: TrueFalseQuestion }) {
   );
 }
 
-export function QuestionCard({ question }: { question: Question }) {
-  if (question.type === "multiple-choice") return <MultipleChoiceCard question={question} />;
-  return <TrueFalseCard question={question} />;
+export function OpenEndedCard({ question, studentName, studentAge }: { question: OpenEndedQuestion; studentName: string; studentAge: number }) {
+  const [answer, setAnswer] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState<{ understandingLevel: string; feedback: string; confidence: number } | null>(null);
+  const [evalError, setEvalError] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!answer.trim()) return;
+    setSubmitted(true);
+    setEvaluating(true);
+    setEvalError(false);
+
+    try {
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context: {
+            studentName,
+            studentAge,
+            ageGroupId: studentAge <= 7 ? "early-explorer" : studentAge <= 12 ? "young-explorer" : studentAge <= 17 ? "teen-learner" : "advanced-learner",
+            ageGroupLabel: "",
+            lessonTitle: "Temperature Sensors",
+            lessonSlug: "temperature-sensors",
+            stepTitle: "Final Assessment",
+            stepKind: "assessment",
+            stepIndex: 6,
+            lessonKnowledge: "",
+          },
+          messages: [{
+            id: "oe-eval",
+            role: "user",
+            text: `Evaluate this student's answer to an open-ended question.\n\nQuestion: ${question.prompt}\n\nExpected concepts: ${question.expectedConcepts.join(", ")}\n\nStudent's answer: ${answer}\n\nRespond with ONLY valid JSON in this exact format:\n{"understandingLevel":"High|Medium|Low","keyConceptsUnderstood":[],"missingConcepts":[],"confidence":0.0,"suggestedFeedback":""}`,
+            status: "success",
+            createdAt: Date.now(),
+          }],
+        }),
+      });
+
+      if (!res.ok) throw new Error("Evaluation failed");
+      const data = (await res.json()) as { text: string };
+
+      // Try to parse the JSON from Gemma's response
+      const jsonMatch = data.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as { understandingLevel: string; suggestedFeedback: string; confidence: number };
+        setEvaluation({ understandingLevel: parsed.understandingLevel, feedback: parsed.suggestedFeedback, confidence: parsed.confidence });
+      } else {
+        // Fallback: use the raw text as feedback
+        setEvaluation({ understandingLevel: "Medium", feedback: data.text, confidence: 0.5 });
+      }
+    } catch {
+      setEvalError(true);
+    } finally {
+      setEvaluating(false);
+    }
+  };
+
+  return (
+    <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+      {question.context ? <p className="text-xs uppercase tracking-wider text-[var(--muted)]">{question.context}</p> : null}
+      <h3 className="mt-1 font-[family-name:var(--font-display)] text-lg font-bold text-[var(--foreground)]">{question.prompt}</h3>
+
+      {!submitted ? (
+        <div className="mt-4 space-y-3">
+          <textarea
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            rows={4}
+            placeholder="Type your answer here…"
+            className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--primary)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--primary)_20%,transparent)]"
+          />
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!answer.trim()}
+            className="rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--surface)] transition hover:bg-[var(--primary-ink)] disabled:bg-[var(--lock)]"
+          >
+            Submit Answer
+          </button>
+        </div>
+      ) : null}
+
+      {evaluating ? (
+        <div className="mt-4 flex items-center gap-2 text-sm text-[var(--muted)]">
+          <span className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="h-1.5 w-1.5 animate-stem-pulse rounded-full bg-[var(--primary)]" style={{ animationDelay: `${i * 0.18}s` }} />
+            ))}
+          </span>
+          Gemma is evaluating your answer…
+        </div>
+      ) : null}
+
+      {evaluation ? (
+        <div className="mt-4 space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              evaluation.understandingLevel === "High" ? "bg-[var(--primary-soft)] text-[var(--primary-ink)]"
+              : evaluation.understandingLevel === "Medium" ? "bg-[var(--secondary-soft)] text-[var(--secondary)]"
+              : "bg-[var(--surface)] text-[var(--muted)]"
+            }`}>
+              {evaluation.understandingLevel} Understanding
+            </span>
+            <span className="text-xs text-[var(--muted)]">Confidence: {Math.round(evaluation.confidence * 100)}%</span>
+          </div>
+          <p className="text-sm leading-relaxed text-[var(--foreground)]">{evaluation.feedback}</p>
+          {question.modelAnswer && submitted ? (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs font-semibold text-[var(--primary-ink)] hover:underline">Show model answer</summary>
+              <p className="mt-1.5 text-sm text-[var(--muted)]">{question.modelAnswer}</p>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+
+      {evalError ? (
+        <div className="mt-4">
+          <p className="text-sm text-[var(--secondary)]">Gemma is currently unavailable. Please try again.</p>
+          <button type="button" onClick={handleSubmit} className="mt-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-2)]">
+            Try again
+          </button>
+        </div>
+      ) : null}
+
+      {submitted && !evaluating && !evalError ? (
+        <button type="button" onClick={() => { setAnswer(""); setSubmitted(false); setEvaluation(null); }} className="mt-3 text-xs font-semibold text-[var(--primary-ink)] hover:underline">
+          Try again
+        </button>
+      ) : null}
+    </article>
+  );
 }
 
-export function QuestionList({ questions, title = "Knowledge check" }: { questions?: Question[]; title?: string }) {
+export function QuestionCard({ question, studentName, studentAge }: { question: Question; studentName?: string; studentAge?: number }) {
+  if (question.type === "multiple-choice") return <MultipleChoiceCard question={question} />;
+  if (question.type === "true-false") return <TrueFalseCard question={question} />;
+  if (question.type === "open-ended" && studentName && studentAge !== undefined) {
+    return <OpenEndedCard question={question} studentName={studentName} studentAge={studentAge} />;
+  }
+  return null;
+}
+
+export function QuestionList({ questions, title = "Knowledge check", studentName, studentAge }: { questions?: Question[]; title?: string; studentName?: string; studentAge?: number }) {
   if (!questions?.length) return null;
   return (
     <div className="space-y-4">
       <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-[var(--foreground)]">{title}</h2>
       {questions.map((q) => (
-        <QuestionCard key={q.id} question={q} />
+        <QuestionCard key={q.id} question={q} studentName={studentName} studentAge={studentAge} />
       ))}
     </div>
   );

@@ -1,6 +1,8 @@
 // Core domain types for Gemma STEM.
 // Kept separate from UI so data shapes can evolve without touching components.
 
+import type { ExperimentConfig as _ExperimentConfig } from "./experiment/types";
+
 export type AgeGroupId = "early-explorer" | "young-explorer" | "teen-learner" | "advanced-learner";
 
 export interface AgeGroup {
@@ -67,7 +69,7 @@ export interface Activity {
 }
 
 /** Shared shape for any question presented to the student. */
-export type QuestionType = "multiple-choice" | "true-false";
+export type QuestionType = "multiple-choice" | "true-false" | "open-ended";
 
 export interface BaseQuestion {
   id: string;
@@ -96,7 +98,19 @@ export interface TrueFalseQuestion extends BaseQuestion {
   explanation: string;
 }
 
-export type Question = MultipleChoiceQuestion | TrueFalseQuestion;
+export interface OpenEndedQuestion extends BaseQuestion {
+  type: "open-ended";
+  /** What a correct answer should cover — used by Gemma for evaluation. */
+  expectedConcepts: string[];
+  /** A model answer for reference (not shown until after submission). */
+  modelAnswer?: string;
+}
+
+export type Question = MultipleChoiceQuestion | TrueFalseQuestion | OpenEndedQuestion;
+
+// Experiment configuration is defined in lib/experiment/types.ts to avoid
+// a circular import (ExperimentConfig references sensor-related types).
+export type { ExperimentConfig } from "./experiment/types";
 
 export interface LessonStep {
   id: string;
@@ -115,6 +129,8 @@ export interface LessonStep {
   questions?: Question[];
   /** Assessment questions (assessment steps). */
   assessment?: Question[];
+  /** Experiment configuration (experiment steps). Drives validation thresholds. */
+  experimentConfig?: _ExperimentConfig;
 }
 
 export interface Lesson {

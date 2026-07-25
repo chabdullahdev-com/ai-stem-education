@@ -3,7 +3,7 @@ import type { HardwareProvider } from "./provider";
 
 /**
  * Simulation hardware provider — for development and testing without the
- * MakerBuddy ESP32 plugged in.
+ * ESP32 IoT kit plugged in.
  *
  * This provider is ALWAYS clearly flagged (isSimulation() === true, the UI
  * renders a SIMULATION badge). It never pretends to be real hardware.
@@ -37,7 +37,7 @@ export class SimulationProvider implements HardwareProvider {
     this.tick = 0;
     this.setStatus("connected");
 
-    // Produce a reading every 1.5 s (faster than MakerBuddy's 2 s, but
+    // Produce a reading every 1.5 s (faster than the ESP32's 2 s, but
     // fine for simulation).
     this.interval = setInterval(() => {
       this.tick++;

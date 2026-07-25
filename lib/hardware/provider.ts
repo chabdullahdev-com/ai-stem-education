@@ -4,10 +4,10 @@ import type { ConnectionStatus, HardwareInfo, SensorReading } from "./types";
  * Hardware provider abstraction.
  *
  * The UI codes against this interface — never directly against WebSocket,
- * the MakerBuddy protocol, or simulation logic.
+ * the ESP32 protocol, or simulation logic.
  *
- * When the MakerBuddy ESP32 is available, the WebSocket-based provider
- * (makerbuddy-provider.ts) implements this interface. During development we
+ * When the ESP32 IoT kit is available, the WebSocket-based provider
+ * (esp32-provider.ts) implements this interface. During development we
  * swap in the simulation provider to test the UI without hardware.
  */
 

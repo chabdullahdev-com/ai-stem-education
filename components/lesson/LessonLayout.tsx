@@ -75,7 +75,7 @@ export function LessonLayout({ lesson, onExit }: LessonLayoutProps) {
 
           <main className="scroll-slim min-h-0 flex-1 overflow-y-auto px-6 py-8 sm:px-10 sm:py-12">
             <div className="mx-auto max-w-3xl">
-              <LessonContent progress={progress} studentAge={profile?.age} />
+              <LessonContent progress={progress} studentAge={profile?.age} studentName={profile?.name} />
             </div>
           </main>
         </div>

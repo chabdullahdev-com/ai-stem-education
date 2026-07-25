@@ -91,7 +91,7 @@ function StemMotif() {
 
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   const conceptTags = useMemo(
-    () => ["AI Instructor", "Real Sensors", "MakerBuddy Hardware", "Hands-on Experiments", "Adaptive Lessons"],
+    () => ["AI Instructor", "Real Sensors", "IoT Hardware", "Hands-on Experiments", "Adaptive Lessons"],
     [],
   );
 

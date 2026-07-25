@@ -185,7 +185,7 @@ export function buildSystemPrompt(
     buildContextBlock(ctx),
   ];
 
-  // Lesson knowledge — the facts Gemma teaches from (from MakerBuddy curriculum).
+  // Lesson knowledge — the facts Gemma teaches from (from the IoT curriculum).
   const knowledge = ctx.lessonKnowledge?.trim();
   if (knowledge) {
     parts.push("", `LESSON KNOWLEDGE (teach from these facts):\n${knowledge}`);

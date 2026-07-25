@@ -8,7 +8,7 @@ import { MAX_HISTORY_LENGTH } from "@/lib/hardware/types";
 import type { HistoryPoint } from "@/components/hardware/TemperatureGraph";
 import { ConnectionStatusBadge } from "./ConnectionStatusBadge";
 import { TemperatureGraph } from "./TemperatureGraph";
-import { MakerBuddyProvider } from "@/lib/hardware/makerbuddy-provider";
+import { Esp32WebSocketProvider } from "@/lib/hardware/esp32-provider";
 import { SimulationProvider } from "@/lib/hardware/simulation-provider";
 
 /* -----------------------------------------------------------------------
@@ -46,7 +46,7 @@ export function useHardwareConnection() {
 
   const createProvider = useCallback(
     (m: "simulation" | "hardware"): HardwareProvider => {
-      return m === "simulation" ? new SimulationProvider() : new MakerBuddyProvider();
+      return m === "simulation" ? new SimulationProvider() : new Esp32WebSocketProvider();
     },
     [],
   );
@@ -295,7 +295,7 @@ export function HardwarePanel({ hook }: HardwarePanelProps) {
             )}
           </p>
         </div>
-        {temp != null ? (
+        {temp != null && reading ? (
           <div className="shrink-0 rounded-full bg-[var(--primary-soft)] px-4 py-3 text-center">
             <span className="text-[10px] uppercase tracking-wider text-[var(--muted)]">Last update</span>
             <p className="text-sm font-semibold text-[var(--primary-ink)]">

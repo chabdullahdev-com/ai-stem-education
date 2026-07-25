@@ -4,12 +4,15 @@ import type { Lesson } from "./types";
  * Reusable lesson data structure.
  * Future lessons can be added here without touching UI components.
  *
- * Part 3B scope:
- *  - The Temperature Sensors lesson now carries MakerBuddy-authentic content:
+ * Part 5 scope:
+ *  - The Temperature Sensors lesson now carries kit-authentic content:
  *    DHT11 / DS18B20 sensors, Input→Process→Output, ADC conversion, data
  *    logging. A `knowledgeBlock` feeds Gemma with structured teaching context.
- *  - All hardware listed in `requiredHardware` matches the MakerBuddy V1 kit.
+ *  - All hardware listed in `requiredHardware` matches the IoT V1 kit.
  *  - Questions are age-targeted (younger: MCQs/TF, older: reasoning).
+ *  - The experiment step is wired to the experiment engine via `experimentConfig`.
+ *  - No brand references appear in any user-facing text; generic kit
+ *    terms ("your IoT kit", "the ESP32 kit", "the sensor kit") are used instead.
  */
 export const LESSONS: Lesson[] = [
   {
@@ -23,13 +26,13 @@ export const LESSONS: Lesson[] = [
       { text: "Understand what a sensor is (Input)." },
       { text: "Understand the Input → Process → Output cycle in an IoT system." },
       { text: "Understand how temperature sensors convert heat into a signal." },
-      { text: "Recognise MakerBuddy temperature sensors: DHT11 and DS18B20." },
+      { text: "Recognise IoT temperature sensors: DHT11 and DS18B20." },
     ],
     requiredHardware: [
-      "ESP32 Development Board (the 'brain')",
+      "ESP32 Development Board",
       "DHT11 Temperature & Humidity Sensor",
       "DS18B20 Waterproof Temperature Probe",
-      "MakerBuddy PCB",
+      "IoT Sensor Kit PCB",
     ],
     concepts: [
       {
@@ -68,17 +71,17 @@ export const LESSONS: Lesson[] = [
         summary:
           "The ESP32's built-in ADC (Analogue-to-Digital Converter) translates the sensor's electrical signal into a number the computer can work with.",
         detail:
-          "Some sensors (like the LDR light sensor) produce a voltage that changes smoothly — an 'analogue' signal. The ADC measures this voltage thousands of times and uses averaging (4 readings at a time in MakerBuddy) to produce a stable digital number.",
+          "Some sensors (like the LDR light sensor) produce a voltage that changes smoothly — an 'analogue' signal. The ADC measures this voltage thousands of times and uses averaging (4 readings at a time in your IoT kit) to produce a stable digital number.",
         everydayExample:
           "When your phone shows you a battery percentage, an ADC inside measured the battery's voltage and turned it into the number you see.",
       },
     ],
-    knowledgeBlock: `MAKERBUDDY TEMPERATURE SENSORS (FACTS FOR TEACHING):
-- The MakerBuddy V1 kit includes two temperature sensors: DHT11 (combined temperature + humidity, digital protocol) and DS18B20 (waterproof precision probe, One-Wire protocol).
+    knowledgeBlock: `IoT KIT TEMPERATURE SENSORS (FACTS FOR TEACHING):
+- The IoT kit includes two temperature sensors: DHT11 (combined temperature + humidity, digital protocol) and DS18B20 (waterproof precision probe, One-Wire protocol).
 - The DHT11 connects via a 3-pin header to GPIO 25. It reports temperature in °C and humidity in %. Readings update roughly every 2 seconds.
 - The DS18B20 connects via a 3-pin header to GPIO 26. It only reports temperature but is more accurate and waterproof.
-- The ESP32 reads sensor signals and converts them to numbers using its ADC (Analogue-to-Digital Converter). MakerBuddy firmware averages 4 readings for cleaner data.
-- Temperature is always reported in degrees Celsius (°C) on the MakerBuddy dashboard.
+- The ESP32 reads sensor signals and converts them to numbers using its ADC (Analogue-to-Digital Converter). The kit's firmware averages 4 readings for cleaner data.
+- Temperature is always reported in degrees Celsius (°C) on the dashboard.
 - The IoT Input→Process→Output cycle: the sensor (Input) measures the physical world, the ESP32 microcontroller (Process) reads and converts the signal, and the result appears on the dashboard/LCD (Output).
 - Data logging is at the heart of IoT: the ESP32 takes a temperature reading every 2 seconds and streams it via WebSocket to the dashboard. Over time these readings form a dataset that shows how temperature changes.
 - The DHT11 measurement range is roughly 0–50 °C with ±2 °C accuracy. The DS18B20 range is -55 to +125 °C with ±0.5 °C accuracy.`,
@@ -88,11 +91,11 @@ export const LESSONS: Lesson[] = [
         title: "Introduction",
         kind: "introduction",
         summary:
-          "Welcome to the Temperature Sensors lesson. We'll discover how the MakerBuddy kit measures temperature with two different sensors — and why that matters in the world of IoT.",
+          "Welcome to the Temperature Sensors lesson. We'll discover how your IoT kit measures temperature with two different sensors — and why that matters in the world of IoT.",
         objectives: [
           { text: "Understand what a sensor is (Input in IoT)." },
           { text: "Understand the Input → Process → Output model." },
-          { text: "Know the two MakerBuddy temperature sensors: DHT11 and DS18B20." },
+          { text: "Know the two IoT kit temperature sensors: DHT11 and DS18B20." },
         ],
       },
       {
@@ -113,7 +116,7 @@ export const LESSONS: Lesson[] = [
             summary:
               "A sensor is the 'eyes and ears' of a computer. It picks up real-world events — heat, light, sound, motion — and turns them into electrical signals.",
             detail:
-              "In MakerBuddy's IoT system the sensor (like the DHT11) is the Input. The ESP32 microcontroller is the Process — it reads the sensor and turns the signal into a number. The dashboard or LCD is the Output — it shows you the reading. Everything in IoT follows this Input→Process→Output cycle.",
+              "In the kit's IoT system the sensor (like the DHT11) is the Input. The ESP32 microcontroller is the Process — it reads the sensor and turns the signal into a number. The dashboard or LCD is the Output — it shows you the reading. Everything in IoT follows this Input→Process→Output cycle.",
             everydayExample:
               "A digital thermometer takes a temperature reading (Input), the chip inside does a calculation (Process), and the screen shows a number (Output).",
           },
@@ -134,7 +137,7 @@ export const LESSONS: Lesson[] = [
         title: "Temperature Sensors",
         kind: "content",
         summary:
-          "The MakerBuddy kit has two temperature sensors: the DHT11 (temperature + humidity) and the DS18B20 (a waterproof precision probe). Each works differently.",
+          "Your IoT kit has two temperature sensors: the DHT11 (temperature + humidity) and the DS18B20 (a waterproof precision probe). Each works differently.",
         objectives: [
           { text: "Describe the difference between the DHT11 and DS18B20." },
           { text: "Explain what the ADC does to turn a sensor signal into a number." },
@@ -147,7 +150,7 @@ export const LESSONS: Lesson[] = [
             summary:
               "The DHT11 measures air temperature and humidity using a digital protocol on a single data wire connected to the ESP32.",
             detail:
-              "Inside the DHT11 a tiny chip measures heat and moisture. It sends these readings as digital pulses — a pattern of high and low voltages — which the ESP32 counts and decodes into °C and %. MakerBuddy reads the DHT11 roughly every 2 seconds.",
+              "Inside the DHT11 a tiny chip measures heat and moisture. It sends these readings as digital pulses — a pattern of high and low voltages — which the ESP32 counts and decodes into °C and %. The kit reads the DHT11 roughly every 2 seconds.",
             everydayExample:
               "Think of the DHT11 as a little digital weather spinner that lets you know if your room is comfortable.",
           },
@@ -192,7 +195,7 @@ export const LESSONS: Lesson[] = [
             summary:
               "IoT isn't just about reading a sensor once — it's about taking regular readings and watching how things change over time.",
             detail:
-              "MakerBuddy streams sensor data every 2 seconds via WebSocket to the dashboard. A data logger records many readings in sequence, showing a trend: is it getting hotter, colder, or staying the same? This is how weather stations, smart fridges, and factory monitors work.",
+              "Your IoT kit streams sensor data every 2 seconds via WebSocket to the dashboard. A data logger records many readings in sequence, showing a trend: is it getting hotter, colder, or staying the same? This is how weather stations, smart fridges, and factory monitors work.",
             everydayExample:
               "If you take your temperature every hour when you're sick and write the numbers down, you're doing data logging — just like IoT devices do.",
           },
@@ -203,7 +206,7 @@ export const LESSONS: Lesson[] = [
           brief: "Design a simple experiment to measure temperature and watch it change over time. You'll run it with hardware in the next part.",
           instructions: [
             "Choose a temperature to measure (room air, a cooling cup of water, your palm…).",
-            "Decide how often to take readings (you can match MakerBuddy's 2-second interval or choose your own).",
+            "Decide how often to take readings (you can match the kit's 2-second interval or choose your own).",
             "Predict what the temperature will look like after 5 readings.",
             "Decide which sensor fits best: DHT11 (air) or DS18B20 (touch / liquid).",
             "Tell Gemma your plan — they'll help you think through whether it makes sense.",
@@ -216,7 +219,16 @@ export const LESSONS: Lesson[] = [
         title: "Experiment",
         kind: "experiment",
         summary:
-          "Hands-on experiment with MakerBuddy hardware. Connect your DS18B20 temperature sensor, capture live readings, and observe how the data changes in real time.",
+          "Hands-on experiment with your IoT sensor kit. Connect your DS18B20 temperature sensor, capture live readings, and observe how the data changes in real time.",
+        experimentConfig: {
+          baselineStabilityWindow: 5,
+          baselineStabilityThreshold: 1.0,
+          coldWaterDeltaThreshold: 3.0,
+          warmWaterDeltaThreshold: 3.0,
+          coldWaterTimeoutSec: 60,
+          warmWaterTimeoutSec: 60,
+          minReadingsPerPhase: 3,
+        },
       },
       {
         id: "step-6-knowledge-check",
@@ -244,7 +256,7 @@ export const LESSONS: Lesson[] = [
             id: "kc-q1-mc-older",
             type: "multiple-choice",
             minAge: 13,
-            prompt: "In the MakerBuddy Input→Process→Output model, which component is the 'Process'?",
+            prompt: "In the IoT kit's Input→Process→Output model, which component is the 'Process'?",
             options: [
               "The ESP32 microcontroller",
               "The DHT11 sensor",
@@ -266,7 +278,7 @@ export const LESSONS: Lesson[] = [
           {
             id: "kc-q3-mc",
             type: "multiple-choice",
-            prompt: "Why does the MakerBuddy ESP32 use the ADC when reading some sensors?",
+            prompt: "Why does the kit's ESP32 use the ADC when reading some sensors?",
             options: [
               "To convert an electrical signal into a number the computer can use",
               "To store data for later",
@@ -307,7 +319,6 @@ export const LESSONS: Lesson[] = [
         id: "step-7-final-assessment",
         title: "Final Assessment",
         kind: "assessment",
-        requiresFutureWork: true,
         summary:
           "Final AI-scored assessment to complete the lesson and earn your Temperature Sensors badge.",
         assessment: [
@@ -315,18 +326,18 @@ export const LESSONS: Lesson[] = [
             id: "fa-q1-tf-young",
             type: "true-false",
             minAge: 5,
-            prompt: "Temperature is measured in degrees Celsius on the MakerBuddy dashboard.",
+            prompt: "Temperature is measured in degrees Celsius on the dashboard.",
             correct: true,
-            explanation: "Yes! MakerBuddy always shows temperature in degrees Celsius (°C).",
+            explanation: "Yes! The kit always shows temperature in degrees Celsius (°C).",
           },
           {
             id: "fa-q1-tf-older",
             type: "true-false",
             minAge: 13,
-            prompt: "The MakerBuddy ES32 reads sensors by polling them over HTTP.",
+            prompt: "The ESP32 reads sensors by polling them over HTTP.",
             correct: false,
             explanation:
-              "No — MakerBuddy uses WebSocket streaming, not HTTP polling. Sensor data is pushed automatically every 2 seconds.",
+              "No — the kit uses WebSocket streaming, not HTTP polling. Sensor data is pushed automatically every 2 seconds.",
           },
           {
             id: "fa-q2-mc",
@@ -345,12 +356,26 @@ export const LESSONS: Lesson[] = [
             options: [
               "Each sensor has a different accuracy and measures from a different location",
               "The DS18B20 is broken if it doesn't match",
-              "MakerBuddy only supports one sensor at a time",
+              "The kit only supports one sensor at a time",
               "Temperature doesn't vary, so one sensor must be wrong",
             ],
             correctIndex: 0,
             explanation:
               "Different sensors have different accuracies (DHT11: ±2 °C, DS18B20: ±0.5 °C) and their physical placement means they may sense slightly different conditions. Neither is necessarily wrong — the DS18B20 is simply more precise.",
+          },
+          {
+            id: "fa-q4-open",
+            type: "open-ended",
+            prompt: "Explain in your own words how a temperature sensor works and why computers need sensors to understand the physical world.",
+            minAge: 8,
+            expectedConcepts: [
+              "sensor converts heat/temperature into an electrical signal",
+              "computer/microcontroller reads and converts the signal to a number",
+              "ADC or analog-to-digital conversion",
+              "temperature measured in degrees Celsius",
+              "computers cannot sense the physical world directly without sensors",
+            ],
+            modelAnswer: "A temperature sensor detects heat by changing its electrical behaviour (like resistance or voltage) as it gets warmer or cooler. The ESP32 reads this changing signal and uses an ADC to convert it into a number (degrees Celsius). Computers need sensors because they can only process digital data — they have no way to directly feel heat, light, or pressure without a sensor converting the physical world into numbers.",
           },
         ],
       },

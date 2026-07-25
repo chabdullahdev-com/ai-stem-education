@@ -2,17 +2,17 @@ import type { ConnectionStatus, HardwareInfo, SensorReading } from "./types";
 import type { HardwareProvider } from "./provider";
 
 /**
- * MakerBuddy hardware provider — the ONLY place that knows about the
- * MakerBuddy WebSocket protocol, the compact JSON message format, and
+ * ESP32 hardware provider — the ONLY place that knows about the
+ * ESP32 WebSocket protocol, the compact JSON message format, and
  * the sensor mapping (d8 = DS18B20, te = DHT11, etc.).
  *
- * Connects to the MakerBuddy ESP32 over Wi-Fi + WebSocket.
+ * Connects to the ESP32 over Wi-Fi + WebSocket.
  */
 
 /* -----------------------------------------------------------------------
- * MakerBuddy compact-JSON message shapes (partial — only what we consume).
+ * ESP32 compact-JSON message shapes (partial — only what we consume).
  * ----------------------------------------------------------------------- */
-interface MbDeviceInfo {
+interface Esp32DeviceInfo {
   m: "i";
   dn: string;  // device name
   fv: string;  // firmware version
@@ -20,14 +20,14 @@ interface MbDeviceInfo {
   mc: string;  // MAC address
 }
 
-interface MbSensorData {
+interface Esp32SensorData {
   m: "s";
   d8?: number; // DS18B20 temperature (°C)
   te?: number; // DHT11 temperature (°C)
   hu?: number; // DHT11 humidity (%)
 }
 
-type MbMessage = MbDeviceInfo | MbSensorData;
+type Esp32Message = Esp32DeviceInfo | Esp32SensorData;
 
 /* -----------------------------------------------------------------------
  * Reconnection constants
@@ -37,13 +37,13 @@ const MAX_RECONNECT_MS = 15_000;
 
 /* -----------------------------------------------------------------------
  * isValidNumber — guards against NaN / -Infinity / obviously-sensorless.
- * MakerBuddy sends -127 when a sensor is not connected.
+ * The ESP32 sends -127 when a sensor is not connected.
  * ----------------------------------------------------------------------- */
 function isValidNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v) && v > -100;
 }
 
-export class MakerBuddyProvider implements HardwareProvider {
+export class Esp32WebSocketProvider implements HardwareProvider {
   private socket: WebSocket | null = null;
   private status: ConnectionStatus = "disconnected";
   private latestReading: SensorReading | null = null;
@@ -142,9 +142,9 @@ export class MakerBuddyProvider implements HardwareProvider {
   }
 
   private handleMessage(raw: string): void {
-    let msg: MbMessage;
+    let msg: Esp32Message;
     try {
-      msg = JSON.parse(raw) as MbMessage;
+      msg = JSON.parse(raw) as Esp32Message;
     } catch {
       return; // ignore un-parseable fragments
     }
