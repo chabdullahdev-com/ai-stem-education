@@ -15,6 +15,7 @@ import { HardwarePanel, useHardwareConnection } from "@/components/hardware/Hard
 import { useExperiment } from "@/lib/experiment/use-experiment";
 import { ExperimentRunner } from "@/components/experiment/ExperimentRunner";
 import type { ExperimentConfig } from "@/lib/experiment/types";
+import { ResultsScreen } from "@/components/results/ResultsScreen";
 
 interface LessonContentProps {
   progress: LessonProgressApi;
@@ -229,14 +230,40 @@ function FutureStepPlaceholder({ step, index }: { step: LessonStep; index: numbe
  * ----------------------------------------------------------------------- */
 
 export function LessonContent({ progress, studentAge, studentName }: LessonContentProps) {
-  const { lesson, currentStepIndex } = progress;
+  const { lesson, currentStepIndex, completedSteps } = progress;
   const step = lesson.steps[currentStepIndex];
+
+  // Check if all non-future-work steps are completed
+  const allStepsComplete = lesson.steps
+    .filter((s) => !s.requiresFutureWork)
+    .every((s) => completedSteps.has(s.id));
 
   if (!step) {
     return (
       <div className="flex h-full items-center justify-center text-[var(--muted)]">
         Step not found.
       </div>
+    );
+  }
+
+  // When the full lesson is done, show the results screen
+  if (allStepsComplete && step.kind === "assessment") {
+    return (
+      <ResultsScreen
+        scores={{ practicalSkills: 0, conceptUnderstanding: 0, knowledgeAssessment: 0, composite: 0 }}
+        telemetry={{
+          baselineTemperature: null,
+          coldDeltaT: null,
+          warmDeltaT: null,
+          coldPassed: false,
+          warmPassed: false,
+          isRealHardware: false,
+          durationSec: null,
+        }}
+        studentName={studentName ?? "Student"}
+        studentAge={studentAge ?? 10}
+        onExit={() => window.location.reload()}
+      />
     );
   }
 

@@ -96,8 +96,8 @@ export async function POST(request: Request): Promise<NextResponse<ChatResponse 
         { status: err.kind === "connection" ? 503 : 500 },
       );
     }
-    // Unexpected — never leak raw error details to the client.
-    console.error("Unhandled error in /api/ai/chat:", err);
+    // Unexpected — never leak raw error details to the client or logs.
+    console.error("Unhandled error in /api/ai/chat");
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 },

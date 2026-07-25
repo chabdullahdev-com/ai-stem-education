@@ -7,6 +7,7 @@ import { StudentProfileModal } from "@/components/student/StudentProfileModal";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
 import { LessonLayout } from "@/components/lesson/LessonLayout";
 import { getLessonBySlug } from "@/lib/lessons";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function GemmaStemApp() {
   const { profile, registerStudent, resetStudent } = useStudent();
@@ -80,8 +81,10 @@ function GemmaStemApp() {
 
 export default function Home() {
   return (
-    <StudentProvider>
-      <GemmaStemApp />
-    </StudentProvider>
+    <ErrorBoundary>
+      <StudentProvider>
+        <GemmaStemApp />
+      </StudentProvider>
+    </ErrorBoundary>
   );
 }
