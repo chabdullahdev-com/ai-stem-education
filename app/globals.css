@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/*
+  Gemma STEM Design System
+  - Educational, premium, friendly; ages 5+ (not childish)
+  - STEM palette: deep "circuit" teal-green (growth / learning)
+    + warm "energy" amber (curiosity / warmth)
+    + off-white canvas, soft ink
+*/
+
+:root {
+  --background: #f7f7f5;
+  --surface: #ffffff;
+  --surface-2: #f1f2ef;
+  --foreground: #1b2530;      /* soft ink, not pure black */
+  --muted: #5f6b78;
+  --border: #e3e6e1;
+
+  --primary: #0f7a6a;          /* deep teal-green */
+  --primary-soft: #e6f0ec;
+  --primary-ink: #0a5a4e;
+  --secondary: #e8852b;        /* warm amber */
+  --secondary-soft: #fbe9d2;
+  --accent: #2b6fb0;           /* measured blue (used sparingly) */
+
+  --lock: #b9bec4;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-ink: var(--primary-ink);
+  --color-secondary: var(--secondary);
+  --color-secondary-soft: var(--secondary-soft);
+  --color-accent: var(--accent);
+  --color-lock: var(--lock);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f1417;
+    --surface: #161d22;
+    --surface-2: #1c252b;
+    --foreground: #ecf1f2;
+    --muted: #9aa6ad;
+    --border: #26323a;
+    --primary: #3bbfa6;
+    --primary-soft: #14312b;
+    --primary-ink: #7ee0c8;
+    --secondary: #f0a957;
+    --secondary-soft: #3a2a18;
+    --accent: #6fa8dc;
+    --lock: #4a5560;
+  }
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-feature-settings: "ss01", "cv01";
+}
+
+/* Subtle grid texture used for STEM surfaces */
+.stem-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.stem-dots {
+  background-image: radial-gradient(color-mix(in srgb, var(--foreground) 12%, transparent) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Thin custom scrollbar for chat / panels */
+.scroll-slim::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 20%, transparent);
+  border-radius: 999px;
+}
+.scroll-slim::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes stem-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+.animate-stem-pulse { animation: stem-pulse 2.4s ease-in-out infinite; }
+
+@keyframes stem-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-stem-float { animation: stem-float 4s ease-in-out infinite; }
+
+@keyframes stem-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-stem-fade-up { animation: stem-fade-up 0.4s ease-out both; }
+
+@keyframes stem-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-stem-scale-in { animation: stem-scale-in 0.22s ease-out both; }
