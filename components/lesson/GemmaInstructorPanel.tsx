@@ -97,6 +97,7 @@ export function GemmaInstructorPanel({ context }: GemmaInstructorPanelProps) {
 
   const handleRetry = useCallback(() => {
     setHasError(false);
+    setErrorMessage(undefined);
     const text = lastUserTextRef.current;
     if (!text || pending) return;
     void callGemma(text);

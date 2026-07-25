@@ -107,8 +107,8 @@ The profile is available app-wide via `useStudent()` (React context backed by `u
 
 ## What is NOT implemented yet (deferred to later parts)
 
-Per the Part 1 + 2A scope, these are intentionally **not** built:
-- Real Gemma / Ollama integration (the `/api/ai/chat` route handler — see "AI chat client" below)
+Per Part 1 + 2A + 2B scope:
+- ✅ Real Gemma / Ollama integration — **DONE (Part 2B)** — connected via `gemma2:2b` through Ollama
 - MakerBuddy hardware integration
 - Real-time sensor data
 - AI-powered adaptive teaching
@@ -116,21 +116,35 @@ Per the Part 1 + 2A scope, these are intentionally **not** built:
 - Student assessment and scoring
 - Step completion logic (progress stays 0/6)
 
-### AI chat client (Part 2A architecture)
+### AI chat client (Parts 2A + 2B architecture)
 
-A clean, provider-agnostic seam so the real backend can land later without touching UI:
+A clean, provider-agnostic seam isolating the UI from any AI runtime:
+
+```
+Browser (chat UI)
+    ↓  POST /api/ai/chat  (ChatRequest → ChatResponse)
+Next.js API route handler  (app/api/ai/chat/route.ts)
+    ↓  AIProvider.chatReply()
+OllamaProvider  (lib/ai/ollama-provider.ts)
+    ↓  HTTP POST localhost:11434/api/chat
+Local Ollama → Gemma model
+```
 
 | Concern | Location |
 |---|---|
 | Chat types (message, roles, request/response, lesson context) | `lib/ai/chat-types.ts` |
-| Chat client (`sendChatMessage`) — the UI calls only this, never Ollama | `lib/ai/chat-client.ts` |
+| AI provider interface (`AIProvider`) | `lib/ai/provider.ts` |
+| Ollama-specific implementation (the ONLY Ollama-aware file) | `lib/ai/ollama-provider.ts` |
+| Age-adaptive system prompts (Gemma persona + age-group tone) | `lib/ai/prompts.ts` |
+| Next.js API route (server-side bridge to the provider) | `app/api/ai/chat/route.ts` |
+| Provider-agnostic client (UI calls only this) | `lib/ai/chat-client.ts` |
 
-- The UI sends a `ChatRequest` containing a `LessonChatContext` (student name/age/age-group + current lesson title/slug + current step title/kind/index) and the message history.
-- `sendChatMessage` will eventually `POST` to `/api/ai/chat` (`AI_CHAT_ENDPOINT`). For Part 2A it runs a **short simulation** so all chat states are end-to-end testable:
-  - Success after a brief delay (exercises thinking → success).
-  - Throws when the latest user message contains the trigger word **"error"** (deterministic way to exercise the error+retry state).
-- The real AI route handler (which actually talks to Ollama/local Gemma) and the `fetch` body are left commented in the client — flip them on when the backend is built.
-- Ollama/AI provider specifics stay entirely out of the chat UI.
+#### Key design decisions
+- The UI never touches Ollama — it calls `sendChatMessage()` which POSTs to `/api/ai/chat`. The API route talks to the `AIProvider` interface.
+- `lib/ai/ollama-provider.ts` is the single file that knows `http://localhost:11434`, Ollama's JSON format, and error shapes. To swap runtimes, implement a new provider and wire it in the route; nothing else changes.
+- System prompts are age-adaptive (5–7, 8–12, 13–17, 18+) and encode the full Gemma STEM instructor persona: vocabulary, depth, question style, examples, and guidance-when-stuck.
+- Error handling at every layer maps failures (connection refused, timeout, model not found, empty response) to user-friendly messages — the browser never sees stack traces.
+- Model name is set via the `GEMMA_MODEL` environment variable (defaults to `gemma2:2b`). Ollama URL via `OLLAMA_BASE_URL` (defaults to `http://localhost:11434`).
 
 ## Verification (Part 1 final test)
 1. ✅ Welcome screen renders with branding + CTA.
@@ -149,6 +163,9 @@ Checks run locally: `npm run typecheck` ✅ and `npm run lint` ✅.
 
 ## How to Customize
 
+- **Switch the AI model:** set `GEMMA_MODEL=gemma4:latest` in `.env.local` (or any other model name Ollama has). Default is `gemma2:2b`.
+- **Change the Ollama URL:** set `OLLAMA_BASE_URL=http://my-machine:11434` in `.env.local` (default is `http://localhost:11434`).
+
 - **Colors:** edit CSS variables in `app/globals.css` (`:root` and the dark-mode block).
 - **Fonts:** swap the `next/font/google` imports in `app/layout.tsx`.
 - **Add a lesson:** append a `Lesson` object to `LESSONS` in `lib/lessons.ts` — the dashboard and sidebar render from this data automatically.
@@ -158,4 +175,5 @@ Checks run locally: `npm run typecheck` ✅ and `npm run lint` ✅.
 ## Recent Changes
 
 - **2026-07-25 (Part 1):** Built the Gemma STEM foundation — design system, TypeScript types, student profile (local-first, refresh-persistent), age-group logic, reusable lesson data structures, welcome screen, profile modal with validation, student dashboard, and the hybrid Temperature Sensors lesson interface with placeholder Gemma instructor panel. No AI/hardware/sensor/scoring integration yet.
-- **2026-07-25 (Part 2A):** Upgraded the Gemma panel into a full chat interface. Added a provider-agnostic AI chat client (`lib/ai/`) targeting the future `/api/ai/chat` route, a `LessonChatContext` (student + lesson + step) wired from `LessonLayout`, and reusable chat UI states (empty/thinking/error-with-retry, bubbles, auto-scroll, Enter-to-send). No real AI calls yet — the client is a clearly-marked simulation with a deterministic "error" trigger for testing the failure path.
+- **2026-07-25 (Part 2A):** Upgraded the Gemma panel into a full chat interface. Added a provider-agnostic AI chat client (`lib/ai/`) targeting the future `/api/ai/chat` route, a `LessonChatContext` (student + lesson + step) wired from `LessonLayout`, and reusable chat UI states (empty/thinking/error-with-retry, bubbles, auto-scroll, Enter-to-send). Used a clearly-marked simulation; no real AI yet.
+- **2026-07-25 (Part 2B):** Connected the Gemma chat to a real local AI model. Added the `AIProvider` interface (`lib/ai/provider.ts`), `OllamaProvider` implementation (`lib/ai/ollama-provider.ts` — the only Ollama-aware file), age-adaptive system prompts for all four age groups with the full Gemma STEM instructor persona (`lib/ai/prompts.ts`), and a server-side API route (`app/api/ai/chat/route.ts`) that bridges the frontend to the provider with user-friendly error handling (connection, timeout, model not found, empty response — all user-friendly, no stack traces at the browser). Replaced the Part 2A simulation in `lib/ai/chat-client.ts` with a real fetch. Model name via `GEMMA_MODEL` env var (default `gemma2:2b`). Ollama URL via `OLLAMA_BASE_URL` (default `http://localhost:11434`).
