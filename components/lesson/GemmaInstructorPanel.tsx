@@ -33,6 +33,7 @@ export function GemmaInstructorPanel({ context }: GemmaInstructorPanelProps) {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
   // Retain the last user message so the "Try again" path can resend it.
   const lastUserTextRef = useRef<string>("");
@@ -49,6 +50,7 @@ export function GemmaInstructorPanel({ context }: GemmaInstructorPanelProps) {
     async (userText: string) => {
       setPending(true);
       setHasError(false);
+      setErrorMessage(undefined);
 
       const userMessage: ChatMessage = {
         id: makeId("u"),
@@ -72,8 +74,9 @@ export function GemmaInstructorPanel({ context }: GemmaInstructorPanelProps) {
           createdAt: Date.now(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
-      } catch {
+      } catch (err) {
         setHasError(true);
+        setErrorMessage(err instanceof Error ? err.message : undefined);
       } finally {
         setPending(false);
       }
@@ -131,7 +134,7 @@ export function GemmaInstructorPanel({ context }: GemmaInstructorPanelProps) {
               <ChatBubble key={m.id} message={m} />
             ))}
             {pending ? <ChatThinkingIndicator /> : null}
-            {hasError && !pending ? <ChatErrorState onRetry={handleRetry} /> : null}
+            {hasError && !pending ? <ChatErrorState message={errorMessage} onRetry={handleRetry} /> : null}
           </>
         )}
       </div>
@@ -169,7 +172,7 @@ export function GemmaInstructorPanel({ context }: GemmaInstructorPanelProps) {
           </button>
         </div>
         <p className="mt-2 text-center text-[10px] text-[var(--muted)]">
-          Chat UI preview — real Gemma connects via /api/ai/chat in the next part
+          Powered by local Gemma via Ollama
         </p>
       </form>
     </aside>

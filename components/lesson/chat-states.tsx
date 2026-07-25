@@ -48,17 +48,22 @@ export function ChatThinkingIndicator() {
   );
 }
 
-export function ChatErrorState({ onRetry }: { onRetry: () => void }) {
+export function ChatErrorState({ message, onRetry }: { message?: string; onRetry: () => void }) {
+  const display = message || ERROR_LABEL;
+  const isDefault = !message;
   return (
     <div className="flex flex-col items-start gap-1.5" role="alert">
-      <AssistantBubble shape="rounded-tl-sm" className="border border-[color-mix(in_srgb,var(--secondary)_35%,transparent)]">
+      <AssistantBubble
+        shape="rounded-tl-sm"
+        className={`border ${isDefault ? "border-[color-mix(in_srgb,var(--secondary)_35%,transparent)]" : "border-[var(--secondary)]"}`}
+      >
         <div className="flex items-start gap-2">
           <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--secondary)]" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
             <path d="M10 6v5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             <circle cx="10" cy="13.6" r="0.9" fill="currentColor" />
           </svg>
-          <p className="text-sm text-[var(--foreground)]">{ERROR_LABEL}</p>
+          <p className="text-sm text-[var(--foreground)]">{display}</p>
         </div>
         <button
           type="button"
